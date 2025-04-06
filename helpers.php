@@ -147,3 +147,16 @@ function genarateGPGKey($username, $email, $password) {
 
     echo "Passphrase: $password (Don’t lose it, or you’re toast!)\n";
 }
+
+function printHelp(){
+    echo "Passw version: 1.0.0\n";
+    echo "Usage: php main.php <key>\n";
+    echo "Commands:\n";
+    echo "  new, add, -a: Add a new password\n";
+    echo "  show, view, -s: Show a password\n";
+    echo "  delete, remove, -d: Delete a password\n";
+    echo "  list, -l: List all Entries\n";
+    echo "  help, -h: Show this help message\n";
+}
+
+
