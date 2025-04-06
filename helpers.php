@@ -203,40 +203,19 @@ function addNewService(){
     //encrypt the data using gpg
     $json_data = json_encode($data, JSON_PRETTY_PRINT);
 
-    $homeDir = HOME_DIR."/config";
-    $publicKeyFile = "$homeDir/public_key.asc";
-
     
-    $publicKey = file_get_contents($publicKeyFile);
-
-
-    putenv('GNUPGHOME='.HOME_DIR.'/config');
-
-    $gpg = new gnupg();
-    $gpg->seterrormode(gnupg::ERROR_EXCEPTION);
-    $info = $gpg->import($publicKey);
-    $gpg->addencryptkey($info['fingerprint']);
-
-    $encrypted_data = $gpg->encrypt($json_data);
-    $gpg->clearencryptkeys();
+    $encryptedData = encryptFile($json_data);
     
 
 
-
-    //check if the encryption was successful
-    if (empty($encrypted_data)) {
-        echo "Encryption failed! GPG says: " . implode("\n", $output);
+    if($encryptedData === false){
         return;
     }
 
-    //check if the encrypted data is valid
-    if (!preg_match('/^-----BEGIN PGP MESSAGE-----/', $encrypted_data)) {
-        echo "Encryption failed! GPG says: " . json_encode($encrypted_data);
-        return;
-    }
+    
 
     //save the encrypted data to a file
-    file_put_contents(HOME_DIR.'/'.$service.'/data.gpg', $encrypted_data);
+    file_put_contents(HOME_DIR.'/'.$service.'/data.gpg', $encryptedData);
     echo "Service added successfully.\n";
 }
 
@@ -368,26 +347,14 @@ function updateService(){
 
     //encrypt the data using gpg
     $json_data = json_encode($data, JSON_PRETTY_PRINT);
-    $homeDir = HOME_DIR."/config";
-    $publicKeyFile = "$homeDir/public_key.asc";
-    $publicKey = file_get_contents($publicKeyFile);
-    putenv('GNUPGHOME='.HOME_DIR.'/config');
-    $gpg = new gnupg();
-    $gpg->seterrormode(gnupg::ERROR_EXCEPTION);
-    $info = $gpg->import($publicKey);
-    $gpg->addencryptkey($info['fingerprint']);
-    $encrypted_data = $gpg->encrypt($json_data);
-    $gpg->clearencryptkeys();
-    //check if the encryption was successful
-    if (empty($encrypted_data)) {
-        echo "Encryption failed! GPG says: " . implode("\n", $output);
+    
+    $encrypted_data = encryptFile($json_data);
+
+    if($encrypted_data === false){
         return;
     }
-    //check if the encrypted data is valid
-    if (!preg_match('/^-----BEGIN PGP MESSAGE-----/', $encrypted_data)) {
-        echo "Encryption failed! GPG says: " . json_encode($encrypted_data);
-        return;
-    }
+
+
     //save the encrypted data to a file
     file_put_contents(HOME_DIR.'/'.$service.'/data.gpg', $encrypted_data);
     echo "Service updated successfully.\n";
@@ -423,4 +390,39 @@ function serviceNameValidation($service, $isNewService = false) {
     }
 
     return true;
+}
+
+function encryptFile($data) {
+
+    $homeDir = HOME_DIR."/config";
+    $publicKeyFile = "$homeDir/public_key.asc";
+
+    
+    $publicKey = file_get_contents($publicKeyFile);
+
+
+    putenv('GNUPGHOME='.HOME_DIR.'/config');
+
+    $gpg = new gnupg();
+    $gpg->seterrormode(gnupg::ERROR_EXCEPTION);
+    $info = $gpg->import($publicKey);
+    $gpg->addencryptkey($info['fingerprint']);
+    $encryptedData = $gpg->encrypt($data);
+    $gpg->clearencryptkeys();
+    
+
+    //check if the encryption was successful
+    if (empty($encryptedData)) {
+        echo "Encryption failed! GPG says: " . implode("\n", $output);
+        return false;
+    }
+
+    //check if the encrypted data is valid
+    if (!preg_match('/^-----BEGIN PGP MESSAGE-----/', $encryptedData)) {
+        echo "Encryption failed! GPG says: " . json_encode($encryptedData);
+        return false;
+    }
+
+    return $encryptedData;
+
 }
