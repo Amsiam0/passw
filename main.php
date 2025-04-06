@@ -34,6 +34,7 @@ switch ($key) {
     case 'show':
     case 'view':
     case '-s':
+        
         showService();
         break;
     case 'delete':
@@ -42,6 +43,7 @@ switch ($key) {
         deleteService();
         break;
     case 'list':
+    case 'ls':
     case '-l':
         listServices();
         break;

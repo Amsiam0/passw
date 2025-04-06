@@ -321,4 +321,47 @@ function showService(){
     
 }
 
+function listServices(){
+    //get the data from arguments
+    $services = scandir(HOME_DIR);
+    $services = array_diff($services, array('.', '..', 'config', 'database.json'));
+    if (empty($services)) {
+        echo "No services found.\n";
+        return;
+    }
+    echo "Services:\n";
+    foreach ($services as $service) {
+        echo "- $service\n";
+    }
+}
 
+function deleteService(){
+    //get the data from arguments
+    $service = readline("Enter the service name: ");
+
+    //check if the service name is empty
+    if (empty($service)) {
+        echo "Service name cannot be empty.\n";
+        return;
+    }
+
+    //title case the service name
+    $service = ucwords(strtolower($service));
+
+    //check if the service name is valid
+    if (!preg_match('/^[a-zA-Z0-9_]+$/', $service)) {
+        echo "Service name can only contain letters, numbers, and underscores.\n";
+        return;
+    }
+
+    //check if the service name exists
+    if (!file_exists(HOME_DIR.'/'.$service.'/data.gpg')) {
+        echo "Service name does not exist.\n";
+        return;
+    }
+
+    //delete the folder with the service name
+    unlink(HOME_DIR.'/'.$service.'/data.gpg');
+    rmdir(HOME_DIR.'/'.$service);
+    echo "Service deleted successfully.\n";
+}
