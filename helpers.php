@@ -55,7 +55,22 @@ function setDatabase(){
     $publicKeyFile = "$homeDir/public_key.asc";
 
 
-    exec("gpg --list-packets $publicKeyFile | grep -i 'user id'", $output);
+    //import the public key & private key
+    
+    exec("gpg --homedir $homeDir --import $publicKeyFile 2>&1", $output, $returnVar);
+    if ($returnVar !== 0) {
+        throw new Exception("Key import failed! GPG says: " . implode("\n", $output));
+    }
+
+    //import the private key
+    $privateKeyFile = "$homeDir/private_key.asc";
+    exec("gpg --homedir $homeDir --import $privateKeyFile 2>&1", $output, $returnVar);
+    if ($returnVar !== 0) {
+        throw new Exception("Key import failed! GPG says: " . implode("\n", $output));
+    }
+
+
+    exec("gpg --homedir $homeDir --list-packets $publicKeyFile | grep -i 'user id'", $output);
     if (empty($output)) {
         throw new Exception("Failed to list packets. GPG says: " . implode("\n", $output));
     }
