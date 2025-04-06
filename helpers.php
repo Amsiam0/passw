@@ -380,3 +380,63 @@ function deleteService(){
     rmdir(HOME_DIR.'/'.$service);
     echo "Service deleted successfully.\n";
 }
+
+function updateService(){
+    //get the data from arguments
+    $service = readline("Enter the service name: ");
+    $username = readline("Enter the username: ");
+    $password = readline("Enter the password: ");
+
+    //create an array with the data
+    $data = array(
+        'username' => $username,
+        'password' => $password,
+    );
+
+    //check if the service name is empty
+    if (empty($service)) {
+        echo "Service name cannot be empty.\n";
+        return;
+    }
+
+    //title case the service name
+    $service = ucwords(strtolower($service));
+
+    //check if the service name is valid
+    if (!preg_match('/^[a-zA-Z0-9_]+$/', $service)) {
+        echo "Service name can only contain letters, numbers, and underscores.\n";
+        return;
+    }
+
+    //check if the service name exists
+    if (!file_exists(HOME_DIR.'/'.$service.'/data.gpg')) {
+        echo "Service name does not exist.\n";
+        return;
+    }
+
+    //encrypt the data using gpg
+    $json_data = json_encode($data, JSON_PRETTY_PRINT);
+    $homeDir = HOME_DIR."/config";
+    $publicKeyFile = "$homeDir/public_key.asc";
+    $publicKey = file_get_contents($publicKeyFile);
+    putenv('GNUPGHOME='.HOME_DIR.'/config');
+    $gpg = new gnupg();
+    $gpg->seterrormode(gnupg::ERROR_EXCEPTION);
+    $info = $gpg->import($publicKey);
+    $gpg->addencryptkey($info['fingerprint']);
+    $encrypted_data = $gpg->encrypt($json_data);
+    $gpg->clearencryptkeys();
+    //check if the encryption was successful
+    if (empty($encrypted_data)) {
+        echo "Encryption failed! GPG says: " . implode("\n", $output);
+        return;
+    }
+    //check if the encrypted data is valid
+    if (!preg_match('/^-----BEGIN PGP MESSAGE-----/', $encrypted_data)) {
+        echo "Encryption failed! GPG says: " . json_encode($encrypted_data);
+        return;
+    }
+    //save the encrypted data to a file
+    file_put_contents(HOME_DIR.'/'.$service.'/data.gpg', $encrypted_data);
+    echo "Service updated successfully.\n";
+}

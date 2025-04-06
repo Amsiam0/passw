@@ -34,8 +34,12 @@ switch ($key) {
     case 'show':
     case 'view':
     case '-s':
-        
         showService();
+        break;
+    case 'update':
+    case 'edit':
+    case '-u':
+        updateService();
         break;
     case 'delete':
     case 'remove':
