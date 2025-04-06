@@ -178,6 +178,13 @@ function printHelp(){
 function addNewService(){
     //get the data from arguments
     $service = readline("Enter the service name: ");
+
+    $service = ucwords(strtolower($service));
+
+    if (!serviceNameValidation($service,true)) {
+        return;
+    }
+
     $username = readline("Enter the username: ");
     $password = readline("Enter the password: ");
 
@@ -186,26 +193,7 @@ function addNewService(){
         'username' => $username,
         'password' => $password,
     );
-
-    //check if the service name is empty
-    if (empty($service)) {
-        echo "Service name cannot be empty.\n";
-        return;
-    }
-
-    //title case the service name
-    $service = ucwords(strtolower($service));
-
-    //check if the service name is valid
-    if (!preg_match('/^[a-zA-Z0-9_]+$/', $service)) {
-        echo "Service name can only contain letters, numbers, and underscores.\n";
-        return;
-    }
-    //check if the service name is already exists
-    if (file_exists(HOME_DIR.'/'.$service.'/data.gpg')) {
-        echo "Service name already exists.\n";
-        return;
-    }
+    
 
     //create a folder with the service name
     if (!file_exists(HOME_DIR.'/'.$service)) {
@@ -257,24 +245,11 @@ function showService(){
     //get the data from arguments
     $service = readline("Enter the service name: ");
 
-    //check if the service name is empty
-    if (empty($service)) {
-        echo "Service name cannot be empty.\n";
-        return;
-    }
 
     //title case the service name
     $service = ucwords(strtolower($service));
 
-    //check if the service name is valid
-    if (!preg_match('/^[a-zA-Z0-9_]+$/', $service)) {
-        echo "Service name can only contain letters, numbers, and underscores.\n";
-        return;
-    }
-
-    //check if the service name exists
-    if (!file_exists(HOME_DIR.'/'.$service.'/data.gpg')) {
-        echo "Service name does not exist.\n";
+    if (!serviceNameValidation($service)) {
         return;
     }
 
@@ -354,24 +329,10 @@ function deleteService(){
     //get the data from arguments
     $service = readline("Enter the service name: ");
 
-    //check if the service name is empty
-    if (empty($service)) {
-        echo "Service name cannot be empty.\n";
-        return;
-    }
-
     //title case the service name
     $service = ucwords(strtolower($service));
 
-    //check if the service name is valid
-    if (!preg_match('/^[a-zA-Z0-9_]+$/', $service)) {
-        echo "Service name can only contain letters, numbers, and underscores.\n";
-        return;
-    }
-
-    //check if the service name exists
-    if (!file_exists(HOME_DIR.'/'.$service.'/data.gpg')) {
-        echo "Service name does not exist.\n";
+    if (!serviceNameValidation($service)) {
         return;
     }
 
@@ -384,6 +345,14 @@ function deleteService(){
 function updateService(){
     //get the data from arguments
     $service = readline("Enter the service name: ");
+
+    $service = ucwords(strtolower($service));
+
+    //check if the service isvalid
+    if (!serviceNameValidation($service)) {
+        return;
+    }
+    
     $username = readline("Enter the username: ");
     $password = readline("Enter the password: ");
 
@@ -393,26 +362,9 @@ function updateService(){
         'password' => $password,
     );
 
-    //check if the service name is empty
-    if (empty($service)) {
-        echo "Service name cannot be empty.\n";
-        return;
-    }
-
-    //title case the service name
-    $service = ucwords(strtolower($service));
-
-    //check if the service name is valid
-    if (!preg_match('/^[a-zA-Z0-9_]+$/', $service)) {
-        echo "Service name can only contain letters, numbers, and underscores.\n";
-        return;
-    }
-
-    //check if the service name exists
-    if (!file_exists(HOME_DIR.'/'.$service.'/data.gpg')) {
-        echo "Service name does not exist.\n";
-        return;
-    }
+    
+    
+    
 
     //encrypt the data using gpg
     $json_data = json_encode($data, JSON_PRETTY_PRINT);
@@ -439,4 +391,36 @@ function updateService(){
     //save the encrypted data to a file
     file_put_contents(HOME_DIR.'/'.$service.'/data.gpg', $encrypted_data);
     echo "Service updated successfully.\n";
+}
+
+function serviceNameValidation($service, $isNewService = false) {
+    //check if the service name is empty
+    if (empty($service)) {
+        echo "Service name cannot be empty.\n";
+        return false;
+    }
+
+    //title case the service name
+    
+
+    //check if the service name is valid
+    if (!preg_match('/^[a-zA-Z0-9_]+$/', $service)) {
+        echo "Service name can only contain letters, numbers, and underscores.\n";
+        return false;
+    }
+
+    //check if the service name exists
+    if($isNewService){
+        if (file_exists(HOME_DIR.'/'.$service.'/data.gpg')) {
+            echo "Service already exist.\n";
+            return false;
+        }
+    }else{
+        if (!file_exists(HOME_DIR.'/'.$service.'/data.gpg')) {
+            echo "Service name does not exist.\n";
+            return false;
+        }
+    }
+
+    return true;
 }
