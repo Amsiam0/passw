@@ -1,3 +1,3 @@
 <?php
 
-define('HOME_DIR', 'database');
+define('HOME_DIR', __DIR__.'/database');

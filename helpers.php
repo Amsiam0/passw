@@ -9,6 +9,7 @@ function init(){
     try{
         //check if HOME_DIR/config folder exists
         if (!file_exists(HOME_DIR.'/config/public_key.asc')) { 
+            echo "Config folder does not exist. Creating...\n";
             createDatabase();
             echo "Database created successfully.\n";
         }else{
@@ -91,7 +92,7 @@ function genarateGPGKey($username, $email, $password) {
         throw new Exception("GPG is not installed. Please install GPG and try again.");
     }
     // check if gpg key already exists
-    $output = shell_exec("gpg --homedir $homedir --list-keys");
+    $output = shell_exec("gpg --homedir $homeDir --list-keys");
     if (strpos($output, $email) !== false) {
         throw new Exception("GPG key already exists for $email. Please use a different email.");
     } 
@@ -157,6 +158,167 @@ function printHelp(){
     echo "  delete, remove, -d: Delete a password\n";
     echo "  list, -l: List all Entries\n";
     echo "  help, -h: Show this help message\n";
+}
+
+function addNewService(){
+    //get the data from arguments
+    $service = readline("Enter the service name: ");
+    $username = readline("Enter the username: ");
+    $password = readline("Enter the password: ");
+
+    //create an array with the data
+    $data = array(
+        'username' => $username,
+        'password' => $password,
+    );
+
+    //check if the service name is empty
+    if (empty($service)) {
+        echo "Service name cannot be empty.\n";
+        return;
+    }
+
+    //title case the service name
+    $service = ucwords(strtolower($service));
+
+    //check if the service name is valid
+    if (!preg_match('/^[a-zA-Z0-9_]+$/', $service)) {
+        echo "Service name can only contain letters, numbers, and underscores.\n";
+        return;
+    }
+    //check if the service name is already exists
+    if (file_exists(HOME_DIR.'/'.$service.'/data.gpg')) {
+        echo "Service name already exists.\n";
+        return;
+    }
+
+    //create a folder with the service name
+    if (!file_exists(HOME_DIR.'/'.$service)) {
+        mkdir(HOME_DIR.'/'.$service, 0700, true);
+    }
+
+    //encrypt the data using gpg
+    $json_data = json_encode($data, JSON_PRETTY_PRINT);
+
+    $homeDir = HOME_DIR."/config";
+    $publicKeyFile = "$homeDir/public_key.asc";
+
+    
+    $publicKey = file_get_contents($publicKeyFile);
+
+
+    putenv('GNUPGHOME='.HOME_DIR.'/config');
+
+    $gpg = new gnupg();
+    $gpg->seterrormode(gnupg::ERROR_EXCEPTION);
+    $info = $gpg->import($publicKey);
+    $gpg->addencryptkey($info['fingerprint']);
+
+    $encrypted_data = $gpg->encrypt($json_data);
+    $gpg->clearencryptkeys();
+    
+
+
+
+    //check if the encryption was successful
+    if (empty($encrypted_data)) {
+        echo "Encryption failed! GPG says: " . implode("\n", $output);
+        return;
+    }
+
+    //check if the encrypted data is valid
+    if (!preg_match('/^-----BEGIN PGP MESSAGE-----/', $encrypted_data)) {
+        echo "Encryption failed! GPG says: " . json_encode($encrypted_data);
+        return;
+    }
+
+    //save the encrypted data to a file
+    file_put_contents(HOME_DIR.'/'.$service.'/data.gpg', $encrypted_data);
+    echo "Service added successfully.\n";
+}
+
+function showService(){
+
+    //get the data from arguments
+    $service = readline("Enter the service name: ");
+
+    //check if the service name is empty
+    if (empty($service)) {
+        echo "Service name cannot be empty.\n";
+        return;
+    }
+
+    //title case the service name
+    $service = ucwords(strtolower($service));
+
+    //check if the service name is valid
+    if (!preg_match('/^[a-zA-Z0-9_]+$/', $service)) {
+        echo "Service name can only contain letters, numbers, and underscores.\n";
+        return;
+    }
+
+    //check if the service name exists
+    if (!file_exists(HOME_DIR.'/'.$service.'/data.gpg')) {
+        echo "Service name does not exist.\n";
+        return;
+    }
+
+    //read from database.json
+    $json_data = file_get_contents('database.json');
+    $data = json_decode($json_data, true);
+
+
+    putenv('GNUPGHOME='.HOME_DIR.'/config');
+    
+    // Clear gpg-agent cache before starting
+    exec('gpgconf --kill gpg-agent'); // Stop the agent
+    exec('gpg-agent --daemon --verbose > /dev/null 2>&1 &'); // Restart it
+
+    $gpg = new gnupg();
+
+    // throw exception if error occurs
+    $gpg->seterrormode(gnupg::ERROR_EXCEPTION); 
+
+    $decrypted_data = '';
+    $ciphertext = file_get_contents(HOME_DIR.'/'.$service.'/data.gpg');
+
+
+    $max_attempts = 3;
+    for ($attempt = 1; $attempt <= $max_attempts; $attempt++) {
+        try {
+            $passphrase = readline("Enter your passphrase (attempt $attempt/$max_attempts): ");
+            $gpg->adddecryptkey($data['email'], $passphrase);
+            $decrypted_data = $gpg->decrypt($ciphertext);
+            $gpg->cleardecryptkeys();
+            break; // Exit loop if successful
+        } catch (Exception $e) {
+            echo "Error: " . $e->getMessage() . "\n";
+            if ($attempt == $max_attempts) {
+                die("Max attempts reached. Decryption failed.\n");
+            }
+            continue;
+        }
+    }
+
+
+    //check if the decryption was successful
+    if (empty($decrypted_data)) {
+        echo "Decryption failed! GPG says: " . implode("\n", $output);
+        return;
+    }
+    
+    //decode the data from json
+    $data = json_decode($decrypted_data, true);
+    //check if the data is valid
+    if (empty($data)) {
+        echo "Decryption failed! GPG says: " . json_encode($decrypted_data);
+        return;
+    }
+    
+    echo "Service: $service\n";
+    echo "Username: ".$data['username']."\n";
+    echo "Password: ".$data['password']."\n";
+    
 }
 
 

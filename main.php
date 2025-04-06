@@ -19,6 +19,8 @@ if ($argc < 2) {
 
 $key = $argv[1];
 
+
+
 switch ($key) {
     case 'help':
     case '-h':
@@ -28,6 +30,7 @@ switch ($key) {
     case 'add':
     case '-a':
         addNewService();
+        break;
     case 'show':
     case 'view':
     case '-s':
